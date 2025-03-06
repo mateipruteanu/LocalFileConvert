@@ -36,13 +36,15 @@ export default function FileConverter() {
   const [targetFormat, setTargetFormat] = useState<string>("png");
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<string>("upload");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
       setFile(selectedFile);
       setConvertedFile(null);
+      setActiveTab("convert");
     }
   };
 
@@ -289,7 +291,7 @@ export default function FileConverter() {
         <ThemeToggle />
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="upload" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="convert" disabled={!file}>
