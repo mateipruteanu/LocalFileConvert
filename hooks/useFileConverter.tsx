@@ -1,9 +1,4 @@
-import {
-  type Dispatch,
-  type SetStateAction,
-  useState,
-  useCallback,
-} from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
 import FileUtils, { type SupportedFileType } from "@/utils/file-utils";
@@ -17,14 +12,14 @@ interface UseFileConverterReturn {
   convertFile: () => Promise<void>;
   file: File | null;
   convertedFile: ConvertedFile | null;
-  targetFormat: SupportedFileType;
+  targetFormat: string;
   isConverting: boolean;
   progress: number;
-  setFile: Dispatch<SetStateAction<File | null>>;
-  setConvertedFile: Dispatch<SetStateAction<ConvertedFile | null>>;
-  setTargetFormat: Dispatch<SetStateAction<SupportedFileType>>;
-  setIsConverting: Dispatch<SetStateAction<boolean>>;
-  setProgress: Dispatch<SetStateAction<number>>;
+  setFile: (file: File | null) => void;
+  setConvertedFile: (file: ConvertedFile | null) => void;
+  setTargetFormat: (format: string) => void;
+  setIsConverting: (isConverting: boolean) => void;
+  setProgress: (progress: number) => void;
 }
 
 export default function useFileConverter(): UseFileConverterReturn {
@@ -32,9 +27,9 @@ export default function useFileConverter(): UseFileConverterReturn {
   const [convertedFile, setConvertedFile] = useState<ConvertedFile | null>(
     null
   );
-  const [targetFormat, setTargetFormat] = useState<SupportedFileType>("png");
-  const [isConverting, setIsConverting] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [targetFormat, setTargetFormat] = useState<string>("png");
+  const [isConverting, setIsConverting] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
 
   const updateProgress = useCallback((prevProgress: number) => {
     if (prevProgress >= 90) {
