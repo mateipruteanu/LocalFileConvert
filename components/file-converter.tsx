@@ -21,9 +21,6 @@ export default function FileConverter() {
     convertFile,
     file,
     convertedFile,
-    targetFormat,
-    isConverting,
-    progress,
     setFile,
     setConvertedFile,
     setTargetFormat,
@@ -83,6 +80,7 @@ export default function FileConverter() {
               Convert
             </TabsTrigger>
           </TabsList>
+
           <TabsContent value="upload">
             <UploadTab
               file={file}
@@ -90,15 +88,11 @@ export default function FileConverter() {
               onReset={resetConverter}
             />
           </TabsContent>
+
           <TabsContent value="convert">
             {file && (
               <ConvertTab
                 file={file}
-                convertedFile={convertedFile}
-                targetFormat={targetFormat}
-                isConverting={isConverting}
-                progress={progress}
-                setTargetFormat={setTargetFormat}
                 onConvert={convertFile}
                 onDownload={downloadFile}
               />

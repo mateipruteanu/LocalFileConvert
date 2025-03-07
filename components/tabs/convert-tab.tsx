@@ -12,33 +12,23 @@ import {
 } from "lucide-react";
 import FileUtils from "@/utils/file-utils";
 import { getAvailableConversions } from "@/utils/conversion-map";
-
-interface ConvertedFile {
-  url: string;
-  name: string;
-}
+import useFileConverter from "@/hooks/useFileConverter";
 
 interface ConvertTabProps {
   file: File;
-  convertedFile: ConvertedFile | null;
-  targetFormat: string;
-  isConverting: boolean;
-  progress: number;
-  setTargetFormat: (format: string) => void;
   onConvert: () => void;
   onDownload: () => void;
 }
 
-export function ConvertTab({
-  file,
-  convertedFile,
-  targetFormat,
-  isConverting,
-  progress,
-  setTargetFormat,
-  onConvert,
-  onDownload,
-}: ConvertTabProps) {
+export function ConvertTab({ file, onConvert, onDownload }: ConvertTabProps) {
+  const {
+    convertedFile,
+    targetFormat,
+    isConverting,
+    progress,
+    setTargetFormat,
+  } = useFileConverter();
+
   const getFileIcon = (fileName: string | undefined) => {
     if (!fileName) return <FileIcon className="h-10 w-10" />;
 
