@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
-import FileUtils, { type SupportedFileType } from "@/utils/file-utils";
+import FileUtils from "@/utils/file-utils";
+import { SupportedFileType } from "@/utils/conversion-map";
 
 interface ConvertedFile {
   url: string;
@@ -234,6 +235,13 @@ export default function useFileConverter(): UseFileConverterReturn {
     handleConversionError,
   ]);
 
+  const handleTargetFormatChange = useCallback((newFormat: string) => {
+    setTargetFormat(newFormat);
+    setConvertedFile(null);
+    setProgress(0);
+    setIsConverting(false);
+  }, []);
+
   return {
     convertFile,
     file,
@@ -243,7 +251,7 @@ export default function useFileConverter(): UseFileConverterReturn {
     progress,
     setFile,
     setConvertedFile,
-    setTargetFormat,
+    setTargetFormat: handleTargetFormatChange,
     setIsConverting,
     setProgress,
   };

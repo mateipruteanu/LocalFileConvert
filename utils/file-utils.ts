@@ -1,4 +1,4 @@
-export type SupportedFileType = "jpg" | "jpeg" | "png" | "pdf";
+import { SupportedFileType } from "./conversion-map";
 
 export default class FileUtils {
   private static readonly SUPPORTED_EXTENSIONS: readonly SupportedFileType[] = [
