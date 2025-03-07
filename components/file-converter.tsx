@@ -10,6 +10,7 @@ import {
   ArrowRightIcon,
   DownloadIcon,
   Trash2Icon,
+  XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,10 @@ import { Progress } from "@/components/ui/progress";
 
 import FileUtils from "@/utils/file-utils";
 import useFileConverter from "@/hooks/useFileConverter";
+import {
+  getAvailableConversions,
+  SupportedFileType,
+} from "@/utils/conversion-map";
 
 export default function FileConverter() {
   const {
@@ -51,6 +56,14 @@ export default function FileConverter() {
       setFile(selectedFile);
       setConvertedFile(null);
       setActiveTab("convert");
+
+      const sourceFormat = FileUtils.getFileType(
+        selectedFile.name
+      ) as SupportedFileType;
+      const availableFormats = getAvailableConversions(sourceFormat);
+      if (availableFormats.length > 0) {
+        setTargetFormat(availableFormats[0]);
+      }
     }
   };
 
@@ -99,7 +112,9 @@ export default function FileConverter() {
       case "png":
         return <ImageIcon className="h-10 w-10" />;
       default:
-        return <FileIcon className="h-10 w-10" />;
+        return (
+          <FileIcon className="h-10 w-10" aria-label="Unsupported file type" />
+        );
     }
   };
 
@@ -184,45 +199,42 @@ export default function FileConverter() {
                   </div>
                   <ArrowRightIcon className="h-6 w-6 text-muted-foreground" />
                   <div className="flex flex-col items-center">
-                    {targetFormat === "pdf" ? (
-                      <FileTextIcon className="h-10 w-10" />
+                    {getAvailableConversions(file.name).length > 0 ? (
+                      <>
+                        {getFileIcon(
+                          targetFormat ? `file.${targetFormat}` : undefined
+                        )}
+                        <p className="text-sm font-medium mt-2">
+                          {targetFormat.toUpperCase()}
+                        </p>
+                      </>
                     ) : (
-                      <ImageIcon className="h-10 w-10" />
+                      <XIcon className="h-10 w-10 text-destructive" />
                     )}
-                    <p className="text-sm font-medium mt-2">
-                      {targetFormat.toUpperCase()}
-                    </p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Convert to:</Label>
-                  <RadioGroup
-                    value={targetFormat}
-                    onValueChange={setTargetFormat}
-                    className="flex flex-row gap-4"
-                  >
-                    {FileUtils.getFileType(file.name) !== "pdf" && (
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="pdf" id="pdf" />
-                        <Label htmlFor="pdf">PDF</Label>
-                      </div>
-                    )}
-                    {FileUtils.getFileType(file.name) !== "png" && (
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="png" id="png" />
-                        <Label htmlFor="png">PNG</Label>
-                      </div>
-                    )}
-                    {FileUtils.getFileType(file.name) !== "jpg" &&
-                      FileUtils.getFileType(file.name) !== "jpeg" && (
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="jpg" id="jpg" />
-                          <Label htmlFor="jpg">JPG</Label>
+                {getAvailableConversions(file.name).length > 0 ? (
+                  <div className="space-y-2">
+                    <Label>Convert to:</Label>
+                    <RadioGroup
+                      value={targetFormat}
+                      onValueChange={setTargetFormat}
+                      className="flex flex-row gap-4"
+                    >
+                      {getAvailableConversions(file.name).map((type) => (
+                        <div key={type} className="flex items-center space-x-2">
+                          <RadioGroupItem value={type} id={type} />
+                          <Label htmlFor={type}>{type.toUpperCase()}</Label>
                         </div>
-                      )}
-                  </RadioGroup>
-                </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                ) : (
+                  <div className="text-center text-sm">
+                    This file type cannot be converted to any other format yet.
+                  </div>
+                )}
 
                 {isConverting ? (
                   <div className="space-y-2">
@@ -241,7 +253,11 @@ export default function FileConverter() {
                     </Button>
                   </div>
                 ) : (
-                  <Button onClick={convertFile} className="w-full">
+                  <Button
+                    onClick={convertFile}
+                    className="w-full"
+                    disabled={getAvailableConversions(file.name).length === 0}
+                  >
                     Convert
                   </Button>
                 )}
