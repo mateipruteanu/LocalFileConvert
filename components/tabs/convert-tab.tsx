@@ -11,6 +11,7 @@ import {
   ArrowRightIcon,
   DownloadIcon,
   XIcon,
+  CopyIcon,
 } from "lucide-react";
 import FileUtils from "@/utils/file-utils";
 import { getAvailableConversions } from "@/utils/conversion-map";
@@ -26,6 +27,7 @@ interface ConvertTabProps {
   onDownload: () => void;
   onConvert: (file: File) => void;
   setTargetFormat: (format: string) => void;
+  onCopy: () => void;
 }
 
 export function ConvertTab({
@@ -37,6 +39,7 @@ export function ConvertTab({
   onDownload,
   onConvert,
   setTargetFormat,
+  onCopy,
 }: ConvertTabProps) {
   const getFileIcon = (fileName: string | undefined) => {
     if (!fileName) return <FileIcon className="h-10 w-10" />;
@@ -119,10 +122,18 @@ export function ConvertTab({
             {getFileIcon(convertedFile.name)}
             <p className="font-medium">{convertedFile.name}</p>
           </div>
-          <Button onClick={onDownload}>
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Download
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={onDownload}>
+              <DownloadIcon className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+            {convertedFile.name.endsWith(".txt") && (
+              <Button variant="outline" onClick={onCopy}>
+                <CopyIcon className="h-4 w-4 mr-2" />
+                Copy Text
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <Button

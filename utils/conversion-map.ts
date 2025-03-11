@@ -1,12 +1,13 @@
 import FileUtils from "./file-utils";
 
-export type SupportedFileType = "pdf" | "jpg" | "jpeg" | "png";
+export type SupportedFileType = "pdf" | "jpg" | "jpeg" | "png" | "txt";
 
 export const conversionMap: Record<SupportedFileType, SupportedFileType[]> = {
   pdf: [],
-  jpg: ["pdf", "png"],
-  jpeg: ["pdf", "png"],
-  png: ["pdf", "jpg"],
+  jpg: ["pdf", "png", "txt"],
+  jpeg: ["pdf", "png", "txt"],
+  png: ["pdf", "jpg", "txt"],
+  txt: [],
 };
 
 /**
