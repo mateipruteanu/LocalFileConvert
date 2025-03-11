@@ -21,6 +21,9 @@ export default function FileConverter() {
     convertFile,
     file,
     convertedFile,
+    targetFormat,
+    isConverting,
+    progress,
     setFile,
     setConvertedFile,
     setTargetFormat,
@@ -30,12 +33,14 @@ export default function FileConverter() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (selectedFile: File) => {
+    console.log("Selected file:", selectedFile);
     setFile(selectedFile);
     setConvertedFile(null);
     setActiveTab("convert");
 
     const availableFormats = getAvailableConversions(selectedFile.name);
     if (availableFormats.length > 0) {
+      console.log("set to target format: ", availableFormats[0]);
       setTargetFormat(availableFormats[0]);
     }
   };
@@ -93,8 +98,13 @@ export default function FileConverter() {
             {file && (
               <ConvertTab
                 file={file}
-                onConvert={convertFile}
+                convertedFile={convertedFile}
+                targetFormat={targetFormat}
+                isConverting={isConverting}
+                progress={progress}
                 onDownload={downloadFile}
+                onConvert={convertFile}
+                setTargetFormat={setTargetFormat}
               />
             )}
           </TabsContent>

@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { FileIcon, ImageIcon, FileTextIcon, Trash2Icon } from "lucide-react";
 import { useRef } from "react";
@@ -13,6 +15,7 @@ export function UploadTab({ file, onFileChange, onReset }: UploadTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("in the upload tab", event.target.files);
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       onFileChange(selectedFile);

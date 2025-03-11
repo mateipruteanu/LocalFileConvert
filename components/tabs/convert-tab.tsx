@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -12,23 +14,28 @@ import {
 } from "lucide-react";
 import FileUtils from "@/utils/file-utils";
 import { getAvailableConversions } from "@/utils/conversion-map";
-import useFileConverter from "@/hooks/useFileConverter";
 
 interface ConvertTabProps {
   file: File;
-  onConvert: () => void;
+  convertedFile: { url: string; name: string } | null;
+  targetFormat: string;
+  isConverting: boolean;
+  progress: number;
   onDownload: () => void;
+  onConvert: (file: File) => void;
+  setTargetFormat: (format: string) => void;
 }
 
-export function ConvertTab({ file, onConvert, onDownload }: ConvertTabProps) {
-  const {
-    convertedFile,
-    targetFormat,
-    isConverting,
-    progress,
-    setTargetFormat,
-  } = useFileConverter();
-
+export function ConvertTab({
+  file,
+  convertedFile,
+  targetFormat,
+  isConverting,
+  progress,
+  onDownload,
+  onConvert,
+  setTargetFormat,
+}: ConvertTabProps) {
   const getFileIcon = (fileName: string | undefined) => {
     if (!fileName) return <FileIcon className="h-10 w-10" />;
 
@@ -111,7 +118,7 @@ export function ConvertTab({ file, onConvert, onDownload }: ConvertTabProps) {
         </div>
       ) : (
         <Button
-          onClick={onConvert}
+          onClick={() => onConvert(file)}
           className="w-full"
           disabled={getAvailableConversions(file.name).length === 0}
         >
