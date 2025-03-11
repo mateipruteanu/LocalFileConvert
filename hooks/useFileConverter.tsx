@@ -10,7 +10,7 @@ interface ConvertedFile {
 }
 
 interface UseFileConverterReturn {
-  convertFile: () => Promise<void>;
+  convertFile: (file: File | undefined) => Promise<void>;
   file: File | null;
   convertedFile: ConvertedFile | null;
   targetFormat: string;
@@ -40,7 +40,7 @@ export default function useFileConverter(): UseFileConverterReturn {
   }, []);
 
   const handleConversionError = useCallback((error: unknown) => {
-    console.error("Conversion error:", error);
+    console.warn("Conversion error:", error);
     toast.error("Conversion failed", {
       description: "There was an error converting your file.",
     });
@@ -76,53 +76,67 @@ export default function useFileConverter(): UseFileConverterReturn {
   );
 
   const convertImageToPdf = useCallback(
-    async (imageFile: File, fileName: string) => {
+    async (imageFile: File, fileName: string): Promise<boolean> => {
       try {
-        // Create a new PDF document
+        // Validate image before conversion
+        const isValidImage = await new Promise<boolean>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(false);
+          img.src = URL.createObjectURL(imageFile);
+        });
+
+        if (!isValidImage) {
+          throw new Error("Invalid or corrupted image file");
+        }
+
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage();
 
-        // Convert the File to an ArrayBuffer
-        const imageArrayBuffer = await new Promise<ArrayBuffer>(
-          (resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as ArrayBuffer);
-            reader.onerror = () => reject(new Error("Failed to read file"));
-            reader.readAsArrayBuffer(imageFile);
-          }
-        );
-
-        // Embed the image into the PDF
         let image;
-        if (imageFile.type === "image/jpeg") {
-          image = await pdfDoc.embedJpg(imageArrayBuffer);
-        } else if (imageFile.type === "image/png") {
-          image = await pdfDoc.embedPng(imageArrayBuffer);
-        } else {
-          throw new Error("Unsupported image format");
+        try {
+          const imageArrayBuffer = await new Promise<ArrayBuffer>(
+            (resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as ArrayBuffer);
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsArrayBuffer(imageFile);
+            }
+          );
+
+          if (imageFile.type === "image/jpeg") {
+            image = await pdfDoc.embedJpg(imageArrayBuffer);
+          } else if (imageFile.type === "image/png") {
+            image = await pdfDoc.embedPng(imageArrayBuffer);
+          } else {
+            throw new Error("Unsupported image format");
+          }
+        } catch (embedError) {
+          if (embedError instanceof Error) {
+            throw new Error(`Failed to process image: ${embedError.message}`);
+          } else {
+            throw new Error("Failed to process image");
+          }
         }
 
-        // Calculate dimensions to fit the image on the page
+        // Calculate dimensions and draw image
         const { width, height } = page.getSize();
         const aspectRatio = image.width / image.height;
         let scaledWidth = width;
         let scaledHeight = width / aspectRatio;
 
-        // Adjust if image height exceeds page height
         if (scaledHeight > height) {
           scaledHeight = height;
           scaledWidth = height * aspectRatio;
         }
 
-        // Draw the image on the page
         page.drawImage(image, {
-          x: (width - scaledWidth) / 2, // Center horizontally
-          y: (height - scaledHeight) / 2, // Center vertically
+          x: (width - scaledWidth) / 2,
+          y: (height - scaledHeight) / 2,
           width: scaledWidth,
           height: scaledHeight,
         });
 
-        // Save the PDF
         const pdfBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -131,8 +145,11 @@ export default function useFileConverter(): UseFileConverterReturn {
           url: pdfUrl,
           name: `${fileName}.pdf`,
         });
+
+        return true;
       } catch (error) {
         handleConversionError(error);
+        return false;
       }
     },
     [handleConversionError]
@@ -177,63 +194,70 @@ export default function useFileConverter(): UseFileConverterReturn {
     [handleConversionError]
   );
 
-  const convertFile = useCallback(async () => {
-    if (!file) return;
+  const convertFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
 
-    if (!FileUtils.isValidFileType(file)) {
-      toast.error("Invalid file type", {
-        description: "Please upload a JPG, PNG, or PDF file.",
-      });
-      return;
-    }
-
-    setIsConverting(true);
-    setProgress(0);
-
-    const progressInterval = setInterval(() => {
-      setProgress(updateProgress);
-    }, 200);
-
-    try {
-      const fileType = FileUtils.getFileType(file.name) as SupportedFileType;
-      const fileName = file.name.split(".")[0];
-
-      switch (fileType) {
-        case "pdf":
-          if (targetFormat === "jpg" || targetFormat === "png") {
-            await convertPdfToImage(file, targetFormat, fileName);
-          }
-          break;
-        case "jpg":
-        case "jpeg":
-        case "png":
-          if (targetFormat === "pdf") {
-            await convertImageToPdf(file, fileName);
-          } else if (targetFormat === "jpg" || targetFormat === "png") {
-            await convertImageToImage(file, targetFormat, fileName);
-          }
-          break;
+      if (!FileUtils.isValidFileType(file)) {
+        toast.error("Invalid file type", {
+          description: "Please upload a JPG, PNG, or PDF file.",
+        });
+        return;
       }
 
-      setProgress(100);
-      toast.success("Conversion complete", {
-        description: "Your file has been converted successfully.",
-      });
-    } catch (error) {
-      handleConversionError(error);
-    } finally {
-      clearInterval(progressInterval);
-      setIsConverting(false);
-    }
-  }, [
-    file,
-    targetFormat,
-    convertPdfToImage,
-    convertImageToPdf,
-    convertImageToImage,
-    updateProgress,
-    handleConversionError,
-  ]);
+      setIsConverting(true);
+      setProgress(0);
+
+      const progressInterval = setInterval(() => {
+        setProgress(updateProgress);
+      }, 200);
+
+      try {
+        const fileType = FileUtils.getFileType(file.name) as SupportedFileType;
+        const fileName = file.name.split(".")[0];
+        let conversionSuccess = false;
+
+        switch (fileType) {
+          case "pdf":
+            if (targetFormat === "jpg" || targetFormat === "png") {
+              await convertPdfToImage(file, targetFormat, fileName);
+              conversionSuccess = true;
+            }
+            break;
+          case "jpg":
+          case "jpeg":
+          case "png":
+            if (targetFormat === "pdf") {
+              conversionSuccess = await convertImageToPdf(file, fileName);
+            } else if (targetFormat === "jpg" || targetFormat === "png") {
+              await convertImageToImage(file, targetFormat, fileName);
+              conversionSuccess = true;
+            }
+            break;
+        }
+
+        if (conversionSuccess) {
+          setProgress(100);
+          toast.success("Conversion complete", {
+            description: "Your file has been converted successfully.",
+          });
+        }
+      } catch (error) {
+        handleConversionError(error);
+      } finally {
+        clearInterval(progressInterval);
+        setIsConverting(false);
+      }
+    },
+    [
+      targetFormat,
+      convertPdfToImage,
+      convertImageToPdf,
+      convertImageToImage,
+      updateProgress,
+      handleConversionError,
+    ]
+  );
 
   const handleTargetFormatChange = useCallback((newFormat: string) => {
     setTargetFormat(newFormat);
