@@ -16,6 +16,7 @@ import { UploadTab } from "./tabs/upload-tab";
 import { ConvertTab } from "./tabs/convert-tab";
 import { getAvailableConversions } from "@/utils/conversion-map";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function FileConverter() {
   const {
@@ -129,7 +130,12 @@ export default function FileConverter() {
 
       <CardFooter className="flex justify-between text-xs text-muted-foreground">
         <p>All conversions happen locally in your browser</p>
-        <p>No files are uploaded to any server</p>
+        <Link
+          href="/supported-conversions"
+          className="hover:text-primary hover:underline"
+        >
+          What are the supported conversions?
+        </Link>
       </CardFooter>
     </Card>
   );
