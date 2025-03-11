@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { PDFDocument } from "pdf-lib";
 import FileUtils from "@/utils/file-utils";
 import { SupportedFileType } from "@/utils/conversion-map";
+import { performOCR } from "@/utils/ocr-utils";
 
 interface ConvertedFile {
   url: string;
@@ -40,7 +41,7 @@ export default function useFileConverter(): UseFileConverterReturn {
   }, []);
 
   const handleConversionError = useCallback((error: unknown) => {
-    console.warn("Conversion error:", error);
+    console.error("Conversion error:", error);
     toast.error("Conversion failed", {
       description: "There was an error converting your file.",
     });
@@ -76,67 +77,53 @@ export default function useFileConverter(): UseFileConverterReturn {
   );
 
   const convertImageToPdf = useCallback(
-    async (imageFile: File, fileName: string): Promise<boolean> => {
+    async (imageFile: File, fileName: string) => {
       try {
-        // Validate image before conversion
-        const isValidImage = await new Promise<boolean>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve(true);
-          img.onerror = () => resolve(false);
-          img.src = URL.createObjectURL(imageFile);
-        });
-
-        if (!isValidImage) {
-          throw new Error("Invalid or corrupted image file");
-        }
-
+        // Create a new PDF document
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage();
 
-        let image;
-        try {
-          const imageArrayBuffer = await new Promise<ArrayBuffer>(
-            (resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as ArrayBuffer);
-              reader.onerror = () => reject(new Error("Failed to read file"));
-              reader.readAsArrayBuffer(imageFile);
-            }
-          );
+        // Convert the File to an ArrayBuffer
+        const imageArrayBuffer = await new Promise<ArrayBuffer>(
+          (resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsArrayBuffer(imageFile);
+          }
+        );
 
-          if (imageFile.type === "image/jpeg") {
-            image = await pdfDoc.embedJpg(imageArrayBuffer);
-          } else if (imageFile.type === "image/png") {
-            image = await pdfDoc.embedPng(imageArrayBuffer);
-          } else {
-            throw new Error("Unsupported image format");
-          }
-        } catch (embedError) {
-          if (embedError instanceof Error) {
-            throw new Error(`Failed to process image: ${embedError.message}`);
-          } else {
-            throw new Error("Failed to process image");
-          }
+        // Embed the image into the PDF
+        let image;
+        if (imageFile.type === "image/jpeg") {
+          image = await pdfDoc.embedJpg(imageArrayBuffer);
+        } else if (imageFile.type === "image/png") {
+          image = await pdfDoc.embedPng(imageArrayBuffer);
+        } else {
+          throw new Error("Unsupported image format");
         }
 
-        // Calculate dimensions and draw image
+        // Calculate dimensions to fit the image on the page
         const { width, height } = page.getSize();
         const aspectRatio = image.width / image.height;
         let scaledWidth = width;
         let scaledHeight = width / aspectRatio;
 
+        // Adjust if image height exceeds page height
         if (scaledHeight > height) {
           scaledHeight = height;
           scaledWidth = height * aspectRatio;
         }
 
+        // Draw the image on the page
         page.drawImage(image, {
-          x: (width - scaledWidth) / 2,
-          y: (height - scaledHeight) / 2,
+          x: (width - scaledWidth) / 2, // Center horizontally
+          y: (height - scaledHeight) / 2, // Center vertically
           width: scaledWidth,
           height: scaledHeight,
         });
 
+        // Save the PDF
         const pdfBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -145,11 +132,8 @@ export default function useFileConverter(): UseFileConverterReturn {
           url: pdfUrl,
           name: `${fileName}.pdf`,
         });
-
-        return true;
       } catch (error) {
         handleConversionError(error);
-        return false;
       }
     },
     [handleConversionError]
@@ -194,8 +178,30 @@ export default function useFileConverter(): UseFileConverterReturn {
     [handleConversionError]
   );
 
+  const convertImageToText = useCallback(
+    async (imageFile: File, fileName: string) => {
+      try {
+        const text = await performOCR(imageFile);
+
+        // Create a blob from the extracted text
+        const textBlob = new Blob([text], { type: "text/plain" });
+        const textUrl = URL.createObjectURL(textBlob);
+
+        setConvertedFile({
+          url: textUrl,
+          name: `${fileName}.txt`,
+        });
+      } catch (error) {
+        handleConversionError(error);
+      }
+    },
+    [handleConversionError]
+  );
+
   const convertFile = useCallback(
     async (file: File | undefined) => {
+      console.log("here, file is", file);
+
       if (!file) return;
 
       if (!FileUtils.isValidFileType(file)) {
@@ -215,33 +221,30 @@ export default function useFileConverter(): UseFileConverterReturn {
       try {
         const fileType = FileUtils.getFileType(file.name) as SupportedFileType;
         const fileName = file.name.split(".")[0];
-        let conversionSuccess = false;
 
         switch (fileType) {
           case "pdf":
             if (targetFormat === "jpg" || targetFormat === "png") {
               await convertPdfToImage(file, targetFormat, fileName);
-              conversionSuccess = true;
             }
             break;
           case "jpg":
           case "jpeg":
           case "png":
             if (targetFormat === "pdf") {
-              conversionSuccess = await convertImageToPdf(file, fileName);
+              await convertImageToPdf(file, fileName);
+            } else if (targetFormat === "txt") {
+              await convertImageToText(file, fileName);
             } else if (targetFormat === "jpg" || targetFormat === "png") {
               await convertImageToImage(file, targetFormat, fileName);
-              conversionSuccess = true;
             }
             break;
         }
 
-        if (conversionSuccess) {
-          setProgress(100);
-          toast.success("Conversion complete", {
-            description: "Your file has been converted successfully.",
-          });
-        }
+        setProgress(100);
+        toast.success("Conversion complete", {
+          description: "Your file has been converted successfully.",
+        });
       } catch (error) {
         handleConversionError(error);
       } finally {
@@ -254,6 +257,7 @@ export default function useFileConverter(): UseFileConverterReturn {
       convertPdfToImage,
       convertImageToPdf,
       convertImageToImage,
+      convertImageToText,
       updateProgress,
       handleConversionError,
     ]
