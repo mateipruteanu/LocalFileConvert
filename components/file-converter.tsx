@@ -15,6 +15,7 @@ import useFileConverter from "@/hooks/useFileConverter";
 import { UploadTab } from "./tabs/upload-tab";
 import { ConvertTab } from "./tabs/convert-tab";
 import { getAvailableConversions } from "@/utils/conversion-map";
+import { toast } from "sonner";
 
 export default function FileConverter() {
   const {
@@ -65,6 +66,20 @@ export default function FileConverter() {
     }
   };
 
+  const copyToClipboard = async () => {
+    if (convertedFile && convertedFile.name.endsWith(".txt")) {
+      try {
+        const response = await fetch(convertedFile.url);
+        const text = await response.text();
+        await navigator.clipboard.writeText(text);
+        toast.success("Text copied to clipboard");
+      } catch (error) {
+        console.error("Failed to copy text:", error);
+        toast.error("Failed to copy text");
+      }
+    }
+  };
+
   return (
     <Card className="w-full max-w-3xl">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -103,6 +118,7 @@ export default function FileConverter() {
                 isConverting={isConverting}
                 progress={progress}
                 onDownload={downloadFile}
+                onCopy={copyToClipboard}
                 onConvert={convertFile}
                 setTargetFormat={setTargetFormat}
               />
