@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import FileUtils from "@/utils/file-utils";
 import { getAvailableConversions } from "@/utils/conversion-map";
+import { useEffect } from "react";
+import { fireConfetti } from "@/utils/confetti-utils";
 
 interface ConvertTabProps {
   file: File;
@@ -56,6 +58,12 @@ export function ConvertTab({
         );
     }
   };
+
+  useEffect(() => {
+    if (convertedFile && !isConverting) {
+      fireConfetti();
+    }
+  }, [convertedFile, isConverting]);
 
   return (
     <div className="space-y-6 mt-6">
