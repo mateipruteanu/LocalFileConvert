@@ -28,6 +28,7 @@ interface ConvertTabProps {
   onConvert: (file: File) => void;
   setTargetFormat: (format: string) => void;
   onCopy: () => void;
+  hideFormatSelection?: boolean;
 }
 
 export function ConvertTab({
@@ -40,6 +41,7 @@ export function ConvertTab({
   onConvert,
   setTargetFormat,
   onCopy,
+  hideFormatSelection = false,
 }: ConvertTabProps) {
   const getFileIcon = (fileName: string | undefined) => {
     if (!fileName) return <FileIcon className="h-10 w-10" />;
@@ -89,7 +91,7 @@ export function ConvertTab({
         </div>
       </div>
 
-      {getAvailableConversions(file.name).length > 0 ? (
+      {!hideFormatSelection && getAvailableConversions(file.name).length > 0 ? (
         <div className="space-y-2">
           <Label>Convert to:</Label>
           <RadioGroup
@@ -106,9 +108,11 @@ export function ConvertTab({
           </RadioGroup>
         </div>
       ) : (
-        <div className="text-center text-sm">
-          This file type cannot be converted to any other format yet.
-        </div>
+        !hideFormatSelection && (
+          <div className="text-center text-sm">
+            This file type cannot be converted to any other format yet.
+          </div>
+        )
       )}
 
       {isConverting ? (
@@ -117,32 +121,30 @@ export function ConvertTab({
           <Progress value={progress} className="h-2" />
         </div>
       ) : convertedFile ? (
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2">
-            {getFileIcon(convertedFile.name)}
-            <p className="font-medium">{convertedFile.name}</p>
-          </div>
-          <div className="flex gap-2">
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-center text-green-600 font-medium">
+            File successfully converted!
+          </p>
+
+          <div className="flex space-x-2">
             <Button onClick={onDownload}>
-              <DownloadIcon className="h-4 w-4 mr-2" />
+              <DownloadIcon className="mr-2 h-4 w-4" />
               Download
             </Button>
-            {convertedFile.name.endsWith(".txt") && (
+            {targetFormat === "txt" && (
               <Button variant="outline" onClick={onCopy}>
-                <CopyIcon className="h-4 w-4 mr-2" />
+                <CopyIcon className="mr-2 h-4 w-4" />
                 Copy Text
               </Button>
             )}
           </div>
         </div>
       ) : (
-        <Button
-          onClick={() => onConvert(file)}
-          className="w-full"
-          disabled={getAvailableConversions(file.name).length === 0}
-        >
-          Convert
-        </Button>
+        <div className="flex justify-center">
+          <Button onClick={() => onConvert(file)}>
+            Convert to {targetFormat.toUpperCase()}
+          </Button>
+        </div>
       )}
     </div>
   );
