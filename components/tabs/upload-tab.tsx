@@ -1,101 +1,91 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { FileIcon, ImageIcon, FileTextIcon, Trash2Icon } from "lucide-react";
-import { useRef } from "react";
-import FileUtils from "@/utils/file-utils";
+import { Input } from "@/components/ui/input";
+import { ChangeEvent, useCallback, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { FileIcon, UploadIcon, RefreshCcw } from "lucide-react";
 
 interface UploadTabProps {
   file: File | null;
   onFileChange: (file: File) => void;
   onReset: () => void;
+  acceptedFileTypes?: string;
+  helpText?: string;
 }
 
-export function UploadTab({ file, onFileChange, onReset }: UploadTabProps) {
+export function UploadTab({
+  file,
+  onFileChange,
+  onReset,
+  acceptedFileTypes,
+  helpText,
+}: UploadTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("in the upload tab", event.target.files);
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      onFileChange(selectedFile);
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      onFileChange(event.target.files[0]);
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileChange(e.dataTransfer.files[0]);
-    }
-  };
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        onFileChange(event.dataTransfer.files[0]);
+      }
+    },
+    [onFileChange]
+  );
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const getFileIcon = (fileName: string | undefined) => {
-    if (!fileName) return <FileIcon className="h-10 w-10" />;
-
-    const type = FileUtils.getFileType(fileName);
-    switch (type) {
-      case "pdf":
-        return <FileTextIcon className="h-10 w-10" />;
-      case "jpg":
-      case "jpeg":
-      case "png":
-        return <ImageIcon className="h-10 w-10" />;
-      default:
-        return (
-          <FileIcon className="h-10 w-10" aria-label="Unsupported file type" />
-        );
-    }
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
   };
 
   return (
-    <div
-      className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 mt-6 cursor-pointer hover:bg-muted/50 transition-colors"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onClick={() => fileInputRef.current?.click()}
-    >
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        accept=".jpg,.jpeg,.png,.pdf"
-      />
-      {file ? (
-        <div className="flex flex-col items-center gap-2">
-          {getFileIcon(file.name)}
-          <p className="font-medium">{file.name}</p>
+    <div className="space-y-6 my-4">
+      {!file ? (
+        <Card
+          className="border-dashed border-2 cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+        >
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <UploadIcon className="h-10 w-10 mb-4 text-muted-foreground" />
+            <p className="text-lg font-medium">
+              Drag & drop or click to upload
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {helpText || "Supported formats: JPG, PNG, PDF"}
+            </p>
+            <Input
+              id="file"
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileChange}
+              accept={acceptedFileTypes}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col items-center justify-center p-4 border rounded-lg">
+          <FileIcon className="h-10 w-10 mb-2 text-muted-foreground" />
+          <p className="text-lg font-medium">{file.name}</p>
           <p className="text-sm text-muted-foreground">
             {(file.size / 1024 / 1024).toFixed(2)} MB
           </p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              onReset();
-            }}
+            className="mt-4"
+            onClick={onReset}
           >
-            <Trash2Icon className="h-4 w-4 mr-2" />
-            Remove
+            <RefreshCcw className="mr-2 h-4 w-4" /> Choose a different file
           </Button>
         </div>
-      ) : (
-        <>
-          <FileIcon className="h-10 w-10 mb-4 text-muted-foreground" />
-          <p className="text-lg font-medium mb-1">Drag & drop your file here</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            or click to browse
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Supports JPG, PNG, and PDF
-          </p>
-        </>
       )}
     </div>
   );
