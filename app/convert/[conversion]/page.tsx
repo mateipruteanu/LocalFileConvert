@@ -14,13 +14,15 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { conversion: string };
+  params: Promise<{ conversion: string }>;
 }): Promise<Metadata> {
-  const conversion = conversionRoutes.find(
-    (route) => route.id === params.conversion
+  const { conversion } = await params;
+
+  const conversionData = conversionRoutes.find(
+    (route) => route.id === conversion
   );
 
-  if (!conversion) {
+  if (!conversionData) {
     return {
       title: "Conversion Not Found | LocalFileConvert",
       description: "The requested file conversion is not supported.",
@@ -28,17 +30,17 @@ export async function generateMetadata({
   }
 
   return {
-    title: conversion.title,
-    description: conversion.description,
+    title: conversionData.title,
+    description: conversionData.description,
     openGraph: {
-      title: conversion.title,
-      description: conversion.description,
+      title: conversionData.title,
+      description: conversionData.description,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: conversion.title,
-      description: conversion.description,
+      title: conversionData.title,
+      description: conversionData.description,
     },
   };
 }
@@ -46,19 +48,21 @@ export async function generateMetadata({
 export default async function ConversionRoute({
   params,
 }: {
-  params: { conversion: string };
+  params: Promise<{ conversion: string }>;
 }) {
-  const conversion = conversionRoutes.find(
-    (route) => route.id === params.conversion
+  const { conversion } = await params;
+
+  const conversionData = conversionRoutes.find(
+    (route) => route.id === conversion
   );
 
-  if (!conversion) {
+  if (!conversionData) {
     notFound();
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-24">
-      <ConversionPage conversion={conversion} />
+      <ConversionPage conversion={conversionData} />
     </main>
   );
 }
