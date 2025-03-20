@@ -16,10 +16,8 @@ export async function generateMetadata({
 }: {
   params: { conversion: string };
 }): Promise<Metadata> {
-  const parameters = await params;
-
   const conversion = conversionRoutes.find(
-    (route) => route.id === parameters.conversion
+    (route) => route.id === params.conversion
   );
 
   if (!conversion) {
@@ -50,10 +48,8 @@ export default async function ConversionRoute({
 }: {
   params: { conversion: string };
 }) {
-  const parameters = await params;
-
   const conversion = conversionRoutes.find(
-    (route) => route.id === parameters.conversion
+    (route) => route.id === params.conversion
   );
 
   if (!conversion) {
