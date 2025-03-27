@@ -1,3 +1,5 @@
+"use client";
+
 import { X, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

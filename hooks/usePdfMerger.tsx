@@ -1,6 +1,9 @@
+"use client";
+
 import { useState, useCallback } from "react";
 import { PDFDocument } from "pdf-lib";
 import { toast } from "sonner";
+import { loadPdfDocument, renderPdfPageToImage } from "@/utils/pdf-renderer";
 
 interface PdfPage {
   pdfIndex: number;
@@ -32,7 +35,7 @@ export default function usePdfMerger() {
     setIsLoading(true);
     setProgress(0);
     const interval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 5, 90));
+      setProgress((prev) => Math.min(prev + 1, 90)); // Slower progress increment since rendering takes time
     }, 200);
 
     try {
@@ -59,22 +62,43 @@ export default function usePdfMerger() {
           pageCount,
         });
 
-        // Generate previews for each page
+        // Load the PDF document once using pdf.js for rendering
+        const pdfJsDoc = await loadPdfDocument(arrayBuffer);
+
+        // Generate actual PDF page previews using PDF.js
         for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-          // Create a new document with just this page for the preview
-          const singlePagePdf = await PDFDocument.create();
-          const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [
-            pageIndex,
-          ]);
-          singlePagePdf.addPage(copiedPage);
+          try {
+            // Render the actual PDF page to an image using the loaded document
+            const imageUrl = await renderPdfPageToImage(pdfJsDoc, pageIndex);
 
-          const pdfBytes = await singlePagePdf.saveAsBase64({ dataUri: true });
+            pdfPagesData.push({
+              pdfIndex: i,
+              pageIndex,
+              previewUrl: imageUrl,
+            });
 
-          pdfPagesData.push({
-            pdfIndex: i,
-            pageIndex,
-            previewUrl: pdfBytes,
-          });
+            // Update progress incrementally
+            const totalPages = files.reduce((total, f, idx) => {
+              if (idx < i) return total + pdfFilesData[idx].pageCount;
+              if (idx === i) return total + pageIndex + 1;
+              return total;
+            }, 0);
+
+            const totalEstimatedPages = files.reduce((acc, _, idx) => {
+              if (idx === i) return acc + pageCount;
+              if (idx < i) return acc + pdfFilesData[idx].pageCount;
+              return acc; // We don't know page counts for files we haven't loaded yet
+            }, 0);
+
+            // Set progress based on how many pages we've processed
+            setProgress(Math.min(90 * (totalPages / totalEstimatedPages), 90));
+          } catch (error) {
+            console.error(
+              `Error rendering preview for page ${pageIndex + 1}:`,
+              error
+            );
+            // Continue to next page if there's an error with this one
+          }
         }
       }
 
