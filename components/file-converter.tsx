@@ -14,9 +14,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import useFileConverter from "@/hooks/useFileConverter";
 import { UploadTab } from "./tabs/upload-tab";
 import { ConvertTab } from "./tabs/convert-tab";
+import { PdfMergerTab } from "@/components/tabs/pdf-merger-tab";
 import { getAvailableConversions } from "@/utils/conversion-map";
 import { toast } from "sonner";
 import Link from "next/link";
+import { Upload as UploadIcon, MoveRight, Layers } from "lucide-react";
 
 export default function FileConverter() {
   const {
@@ -95,10 +97,18 @@ export default function FileConverter() {
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upload">Upload</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="upload">
+              <UploadIcon className="h-4 w-4 mr-2" />
+              Upload
+            </TabsTrigger>
             <TabsTrigger value="convert" disabled={!file}>
+              <MoveRight className="h-4 w-4 mr-2" />
               Convert
+            </TabsTrigger>
+            <TabsTrigger value="merge">
+              <Layers className="h-4 w-4 mr-2" />
+              Merge PDFs
             </TabsTrigger>
           </TabsList>
 
@@ -124,6 +134,10 @@ export default function FileConverter() {
                 setTargetFormat={setTargetFormat}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="merge">
+            <PdfMergerTab />
           </TabsContent>
         </Tabs>
       </CardContent>
