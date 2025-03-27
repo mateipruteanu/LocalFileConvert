@@ -34,12 +34,10 @@ interface PdfPagePreviewProps {
 
 function SortablePageItem({
   page,
-  index,
   onRemove,
   isDisabled,
 }: {
   page: PdfPage;
-  index: number;
   onRemove: () => void;
   isDisabled: boolean;
 }) {
@@ -143,7 +141,6 @@ export function PdfPagePreview({
                 <SortablePageItem
                   key={`${page.pdfIndex}-${page.pageIndex}`}
                   page={page}
-                  index={index}
                   onRemove={() => onRemovePage(index)}
                   isDisabled={isLoading}
                 />
